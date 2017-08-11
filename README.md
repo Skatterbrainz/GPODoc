@@ -1,5 +1,7 @@
 # GPPDoc
-Group Policy and Group Policy Preferences Documentation Tools
+Group Policy and Group Policy Preferences Documentation Tools.
+Available from the PowerShell Gallery
+To import, use Install-Module GPODoc and Import-Module GPODoc
 
 ## Get-GPOComment
 Retrieves Descriptions for GPOs, Comments for embedded GPO settings, and Comments for embedded Group Policy Preference settings.
