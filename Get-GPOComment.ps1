@@ -1,3 +1,4 @@
+#requires -modules GroupPolicy
 <#
 .DESCRIPTION
     Returns comments embedded in GPO policy settings
