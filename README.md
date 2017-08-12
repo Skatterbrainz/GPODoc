@@ -9,11 +9,8 @@ Available from the PowerShell Gallery. To import this module, use _Install-Modul
   * Get-GPOComment -GPOName "*" -PolicyGroup Policy
   * Get-GPOComment -GPOName "GPO1","GPO2" -PolicyGroup Preferences
 
-## Set-GPOComment
-Coming soon
-
 ## Export-GPOCommentReport
 
 * Generates an HTML report of comments embedded within GPOs, GPO Settings and GPO Preferences.
-* Example: Export-GPOCommentReport -GPOName "*" -ReportFile ".\gpo.htm"
-* Example: Get-GPO -All | ?{$_.DisplayName -like "User *"} | Export-GPOCommentReport -ReportFile ".\userGPOs.htm"
+ * Export-GPOCommentReport -GPOName "*" -ReportFile ".\gpo.htm"
+ * Get-GPO -All | ?{$_.DisplayName -like "User *"} | Export-GPOCommentReport -ReportFile ".\userGPOs.htm"
