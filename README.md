@@ -6,8 +6,8 @@ Available from the PowerShell Gallery. To import this module, use _Install-Modul
 
 * Retrieves Descriptions for GPOs, Comments for embedded GPO settings, and Comments for embedded Group Policy Preference settings.
 * Examples:
-  ** Get-GPOComment -GPOName "*" -PolicyGroup Policy
-  ** Get-GPOComment -GPOName "GPO1","GPO2" -PolicyGroup Preferences
+  * Get-GPOComment -GPOName "*" -PolicyGroup Policy
+  * Get-GPOComment -GPOName "GPO1","GPO2" -PolicyGroup Preferences
 
 ## Set-GPOComment
 Coming soon
