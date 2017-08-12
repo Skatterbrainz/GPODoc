@@ -1,179 +1,147 @@
 #requires -Modules GroupPolicy
 <#
+.SYNOPSIS
+    Retrieve comments/descriptions embedded in GPOs
 .DESCRIPTION
-    Returns comments embedded in GPO policy settings
-
+    Retrieve comments and descriptions embedded in GPOs, GPO Settings and GP Preferences Settings
 .PARAMETER GPOName
-    [string] (required) Name of GPO
-
-.PARAMETER Settings
-    [switch] (optional) Retrieve comments associated with embedded settings
-
-.PARAMETER Configuration
-    [string] (optional) list: Machine or User
-
-.PARAMETER Preferences
-    [switch] (optional) Retrieve comments associated with embedded preferences
-
-.EXAMPLE
-    Get-GPOComment -GPOName "C - Kiosk Settings"
-
-.EXAMPLE
-    Get-GPOComment -GPOName "C - Kiosk Settings" -Settings -Configuration Machine
-
-.EXAMPLE
-    Get-GPOComment -GPOName "C - Kiosk Settings" -MachinePreferences -ComputerSection Folders
-
-.EXAMPLE
-    Get-GPOComment -GPOName "C - Kiosk Settings" -UserPreferences -UserSection InternetSettings
-
-.EXAMPLE
-    Get-GPOComment -GPOName "C - Kiosk Settings" -UserPreferences -UserSection Folders -UserItem SharedDocs
-
+    [string[]] (required) Name(s) of Group Policy Objects or '*' for all GPOs
+.PARAMETER PolicyGroup
+    [string] (required) What aspects of each GPO is to be queried
+    List = Policy, Settings, Preferences
 .NOTES
-    2017.08.10.01 - DS
+    version 1.0.3 - DS - 2017.08.11
+.EXAMPLE
+    Get-GPOComment -GPOName '*' -PolicyGroup 'Policy'
+.EXAMPLE
+    $GpoNames | Get-GPOComment -PolicyGroup 'Policy'
+.EXAMPLE
+    Get-GPOComment -GPOName '*' -PolicyGroup 'Settings'
+.EXAMPLE
+    Get-GPOComment -GPOName '*' -PolicyGroup 'Preferences'
 #>
 
 function Get-GPOComment {
     [CmdletBinding()]
     param (
-        [parameter(Mandatory=$True, ValueFromPipeline=$True, HelpMessage='GPO Name')]
+        [parameter(Mandatory=$True, ValueFromPipeline=$True, HelpMessage='Name of Policy or Policies')]
             [ValidateNotNullOrEmpty()]
             [string[]] $GPOName,
-
-        [parameter(ParameterSetName='Settings', Mandatory=$False, HelpMessage='Query GPO Settings')]
-            [switch] $Settings,
-
-        [parameter(ParameterSetName='Settings', Mandatory=$False, HelpMessage='Settings Configuration Group Name')]
-            [ValidateSet('Machine','User')]
-            [string] $Configuration,
-
-        [parameter(ParameterSetName='MachinePreferences', Mandatory=$False, HelpMessage='Query Machine Preferences')]
-            [switch] $MachinePreferences,
-        [parameter(ParameterSetName='MachinePreferences', Mandatory=$False, HelpMessage="Preferences Section")]
-            [ValidateSet('DataSources','Devices','EnvironmentVariables','Files','Folders','Groups','IniFiles','NetworkShares','PowerOptions','Printers','Registry','ScheduledTasks','Shortcuts')]
-            [string] $ComputerSection,
-        [parameter(ParameterSetName='MachinePreferences', Mandatory=$False, HelpMessage="Name of Individual Setting")]
-            [string] $MachineItem = "",
-
-        [parameter(ParameterSetName='UserPreferences', Mandatory=$False, HelpMessage='Query User Preferences')]
-            [switch] $UserPreferences,
-        [parameter(ParameterSetName='UserPreferences', Mandatory=$False, HelpMessage="Preferences Section")]
-            [ValidateSet('Drives','EnvironmentVariables','Files','Folders','InternetSettings','RegionalOptions','StartMenuTaskbar')]
-            [string] $UserSection,
-        [parameter(ParameterSetName='UserPreferences', Mandatory=$False, HelpMessage="Name of Individual Setting")]
-            [string] $UserItem = ""
-
+        [parameter(Mandatory=$True, HelpMessage='Policy group to query')]
+            [ValidateSet('Policy','Settings','Preferences')]
+            [string] $PolicyGroup
     )
-    
-    Write-Verbose "$((Get-Module GPODoc | Select -ExpandProperty Version) -join '.')"
-    if ($Settings) {
-        if (-not ($Configuration)) {
-            Write-Warning "-Settings requires -Configuration to specify Machine or User"
-            break
+    if ($PolicyGroup -eq 'Policy') {
+        if ($GPOName -eq '*') {
+            Write-Verbose "loading all policy objects"
+            $gpos = Get-GPO -All | Sort-Object -Property DisplayName
         }
-        Write-Verbose "querying GPO settings"
-        foreach ($GN in $GPOName) {
-            Write-Verbose "querying GPO: $GN"
+        else {
+            Write-Verbose "loading specific policy objects"
             try {
-                $gpo = Get-GPO -Name $GN
+                $gpos = $GPOName | Foreach-Object {Get-GPO -Name $_ -ErrorAction Stop | Select Id,DisplayName,DomainName,Description}
             }
             catch {
-                Write-Warning "could not open policy object: $GN"
+                Write-Warning "Unable to load GPO"
                 break
             }
-            $policyID     = $gpo.ID
-            $policyDomain = $gpo.DomainName
-            $policyName   = $gpo.DisplayName
-            $policyVpath  = "\\$($policyDomain)\SYSVOL\$($policyDomain)\Policies\{$($policyID)}\$Configuration\comment.cmtx"
-            Write-Verbose "filepath... $policyVpath"
-            if (Test-Path $policyVpath) {
-                Write-Verbose "loading... $policyVpath"
-                [xml]$cmtx = Get-Content -Path $policyVpath
-                $clinks = $cmtx.policyComments.resources.stringTable.string
-                foreach ($clink in $clinks) {
-                    $result = New-Object -TypeName PSObject
-                    $result | Add-Member -MemberType NoteProperty -Name PolicyRef -Value $clink.id
-                    $result | Add-Member -MemberType NoteProperty -Name Comment -Value $clink.InnerText.Trim()
-                    Write-Output $result
-                }
+        }
+        foreach ($gpo in $gpos) {
+            Write-Verbose "policy: $($gpo.DisplayName)"
+            $data = [ordered]@{
+                PolicyID    = $gpo.Id
+                Name        = $gpo.DisplayName
+                Description = $gpo.Description
             }
-            else {
-                Write-Warning "$GN has no embedded preferences comments"
-            }
-        } # end foreach
+            New-Object -TypeName PSObject -Property $data
+        }
     }
-    elseif ($MachinePreferences -or $UserPreferences) {
-        Write-Verbose "querying GP preferences"
-        foreach ($GN in $GPOName) {
-            try {
-                $gpo = Get-GPO -Name $GN -ErrorAction Stop
-            }
-            catch {
-                Write-Error "Group Policy $GN not found"
-                break
-            }
-
-            $policyID     = $gpo.ID
-            $policyDomain = $gpo.DomainName
-            $policyName   = $gpo.DisplayName
-
-            if ($MachinePreferences) { 
-                $Config   = 'Machine'
-                $Section  = $ComputerSection
-                $ItemName = $MachineItem
-            } 
-            else { 
-                $Config   = 'User'
-                $Section  = $UserSection
-                $ItemName = $UserItem
-            }
-            $ElementName = $Section.Substring(0,$Section.Length-1)
-            $policyVpath = "\\$($policyDomain)\SYSVOL\$($policyDomain)\Policies\{$($policyID)}\$Config\Preferences\$Section\$Section.xml"
-    
-            Write-Verbose "loading...... $policyVpath"
-            Write-Verbose "section...... $Section"
-            Write-Verbose "elementname.. $ElementName"
-
-            if (Test-Path $policyVpath) {
-                [xml]$SettingXML = Get-Content $policyVpath
-                Write-Verbose "$($SettingXML.ChildNodes.Count) nodes found"
-                if ($ItemName -ne "") {
-                    $result = $SettingXML."$Section"."$ElementName" | 
-                        Where-Object {$_.name -eq $ItemName} |
-                            Select-Object -ExpandProperty desc
-                    Write-Output $result
-                }
-                else {
-                    foreach ($Element in $SettingXML."$Section"."$ElementName") {
-                        $result = New-Object -TypeName PSObject
-                        $result | Add-Member -MemberType NoteProperty -Name ItemName -Value $Element.name
-                        $result | Add-Member -MemberType NoteProperty -Name Description -Value $Element.desc
-                        Write-Output $result
+    elseif ($PolicyGroup -eq 'Settings') {
+        if ($GPOName -eq '*') {
+            Write-Verbose "loading all policy objects"
+            $gpos = Get-GPO -All | Sort-Object -Property DisplayName
+        }
+        else {
+            Write-Verbose "loading specific policy objects"
+            $gpos = $GPOName | Foreach-Object {Get-GPO -Name $_ -ErrorAction Stop | Select Id,DisplayName,DomainName,Description}
+        }
+        foreach ($gpo in $gpos) {
+            $configs   = @('Machine','User')
+            Write-Verbose "policy: $($gpo.DisplayName)"
+            foreach ($config in $configs) {
+                $commFile = "\\$($gpo.DomainName)\SYSVOL\$($gpo.DomainName)\Policies\{$($gpo.ID)}\$config\comment.cmtx"
+                if (Test-Path $commFile) {
+                    Write-Verbose "loading... $commFile"
+                    [xml]$cmtx = Get-Content -Path $commFile
+                    $clinks = $cmtx.policyComments.resources.stringTable.string
+                    foreach ($clink in $clinks) {
+                        $data = [ordered]@{
+                            PolicyID = $gpo.Id
+                            Name     = $gpo.DisplayName
+                            Configuration = $config
+                            Setting  = $clink.Id
+                            Comment  = $clink.InnerText.Trim()
+                        }
+                        New-Object -TypeName PSObject -Property $data
                     }
                 }
+                else {
+                    Write-Verbose "there are no $config comments in $($gpo.DisplayName)"
+                    $data = [ordered]@{
+                        PolicyID = $gpo.ID
+                        Name     = $gpo.DisplayName
+                        Configuration = $config
+                        Setting  = $null
+                        Comment  = $null
+                    }
+                    New-Object -TypeName PSObject -Property $data
+                }
             }
-            else {
-                Write-Error "unable to load xml data for $GN"
-            }
-        } # end foreach
+        }
     }
-    else {
-        Write-Verbose "querying GPO descriptions"
-        foreach ($GN in $GPOName) {
-            Write-Verbose "querying GPO $GN"
-            try {
-                $gpo = Get-GPO -Name $GN
-                $comment = $($gpo.Description).Trim()
+    elseif ($PolicyGroup -eq 'Preferences') {
+        if ($GPOName -eq '*') {
+            Write-Verbose "loading all policy objects: preferences"
+            $gpos = Get-GPO -All | Sort-Object -Property DisplayName
+        }
+        else {
+            Write-Verbose "loading specific policy objects"
+            $gpos = $GPOName | Foreach-Object {Get-GPO -Name $_ -ErrorAction Stop | Select Id,DisplayName,DomainName,Description}
+        }
+        foreach ($gpo in $gpos) {
+            $configs   = @('Machine','User')
+            Write-Verbose "policy: $($gpo.DisplayName)"
+            foreach ($config in $configs) {
+                $gppPath = "\\$($gpo.DomainName)\SYSVOL\$($gpo.DomainName)\Policies\{$($gpo.Id)}\$config\Preferences"
+                if (Test-Path $gppPath) {
+                    Write-Verbose "there are preferences for this policy object"
+                    foreach ($section in Get-ChildItem -Path $gppPath -Directory | Select-Object -ExpandProperty Name) {
+                        $gppFile = "$gppPath\$section\$section.xml"
+                        if (Test-Path $gppFile) {
+                            Write-Verbose "gppref file: $gppFile"
+                            [xml]$gppXML = Get-Content $gppFile
+                            $Element = $section.substring(0, $section.Length-1)
+                            foreach ($Element in $gppXML."$section"."$Element") {
+                                $data = [ordered]@{
+                                    PolicyID = $gpo.ID
+                                    Name     = $gpo.DisplayName
+                                    Configuration = $config
+                                    Section  = $section
+                                    Element  = $Element.name
+                                    Comment  = $Element.desc
+                                }
+                                New-Object -TypeName PSObject -Property $data
+                            }
+                        }
+                        else {
+                            Write-Verbose "no preference xml data found for $section"
+                        }
+                    }
+                }
+                else {
+                    Write-Verbose "there are no preferences for this policy object"
+                }
             }
-            catch {
-                Write-Warning "$GN has no comment"
-                break
-            }
-            $result = New-Object -TypeName PSObject
-            $result | Add-Member -MemberType NoteProperty -Name Name -Value $GN
-            $result | Add-Member -MemberType NoteProperty -Name Comment -Value $comment
-            Write-Output $result
-        } # end foreach
+        }
     }
 }
