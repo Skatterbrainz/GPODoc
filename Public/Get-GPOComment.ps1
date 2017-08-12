@@ -34,7 +34,7 @@ function Get-GPOComment {
     if ($PolicyGroup -eq 'Policy') {
         if ($GPOName -eq '*') {
             Write-Verbose "loading all policy objects"
-            $gpos = Get-GPO -All
+            $gpos = Get-GPO -All | Sort-Object -Property DisplayName
         }
         else {
             Write-Verbose "loading specific policy objects"
@@ -59,7 +59,7 @@ function Get-GPOComment {
     elseif ($PolicyGroup -eq 'Settings') {
         if ($GPOName -eq '*') {
             Write-Verbose "loading all policy objects"
-            $gpos = Get-GPO -All
+            $gpos = Get-GPO -All | Sort-Object -Property DisplayName
         }
         else {
             Write-Verbose "loading specific policy objects"
@@ -102,7 +102,7 @@ function Get-GPOComment {
     elseif ($PolicyGroup -eq 'Preferences') {
         if ($GPOName -eq '*') {
             Write-Verbose "loading all policy objects: preferences"
-            $gpos = Get-GPO -All
+            $gpos = Get-GPO -All | Sort-Object -Property DisplayName
         }
         else {
             Write-Verbose "loading specific policy objects"
@@ -117,19 +117,24 @@ function Get-GPOComment {
                     Write-Verbose "there are preferences for this policy object"
                     foreach ($section in Get-ChildItem -Path $gppPath -Directory | Select-Object -ExpandProperty Name) {
                         $gppFile = "$gppPath\$section\$section.xml"
-                        Write-Verbose "gppref file: $gppFile"
-                        [xml]$gppXML = Get-Content $gppFile
-                        $Element = $section.substring(0, $section.Length-1)
-                        foreach ($Element in $gppXML."$section"."$Element") {
-                            $data = [ordered]@{
-                                PolicyID = $gpo.ID
-                                Name     = $gpo.DisplayName
-                                Configuration = $config
-                                Section  = $section
-                                Element  = $Element.name
-                                Comment  = $Element.desc
+                        if (Test-Path $gppFile) {
+                            Write-Verbose "gppref file: $gppFile"
+                            [xml]$gppXML = Get-Content $gppFile
+                            $Element = $section.substring(0, $section.Length-1)
+                            foreach ($Element in $gppXML."$section"."$Element") {
+                                $data = [ordered]@{
+                                    PolicyID = $gpo.ID
+                                    Name     = $gpo.DisplayName
+                                    Configuration = $config
+                                    Section  = $section
+                                    Element  = $Element.name
+                                    Comment  = $Element.desc
+                                }
+                                New-Object -TypeName PSObject -Property $data
                             }
-                            New-Object -TypeName PSObject -Property $data
+                        }
+                        else {
+                            Write-Verbose "no preference xml data found for $section"
                         }
                     }
                 }
