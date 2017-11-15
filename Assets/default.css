@@ -1,1 +1,15 @@
-x
+/*
+GPODoc Default HTML Stylesheet Template
+*/
+body { background-color:#eee; font-family:Calibri; font-size:10pt; }
+td, th { border:0px solid black; border-collapse:collapse; white-space:pre; }
+th { color:white; background-color:black; }
+table, tr, td, th { padding: 2px; margin: 0px ;white-space:pre; }
+td {background-color:#fff;}
+tr:nth-child(odd) {background-color: lightgray}
+table { width:95%;margin-left:5px; margin-bottom:20px;}
+h2 {font-family:Tahoma; color:#000;}
+h2 {font-family:Tahoma; color:#6D7B8D;}
+h3 {font-family:Tahoma; color:#6D7B8D;}
+.alert {color: red;}
+.footer {color:#6D7B8D; margin-left:10px; font-family:Tahoma;font-size:8pt;}
