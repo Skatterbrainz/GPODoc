@@ -5,40 +5,36 @@ online version:
 schema: 2.0.0
 ---
 
-# Get-GPOComment
+# Export-GPOComments
 
 ## SYNOPSIS
-Retrieve comments/descriptions embedded in GPOs
+Compile HTML Report of GPO comments
 
 ## SYNTAX
 
 ```
-Get-GPOComment [-GPOName] <String[]> [-PolicyGroup] <String>
+Export-GPOComments [-GPOName] <String[]> [-ReportFile] <String> [[-StyleSheet] <String>]
 ```
 
 ## DESCRIPTION
-Retrieve comments and descriptions embedded in GPOs, GPO Settings and GP Preferences Settings
+Compile an HTML report of comments embedded within GPOs, GPO Settings
+and GP Preferences settings
 
 ## EXAMPLES
 
 ### -------------------------- EXAMPLE 1 --------------------------
 ```
-Get-GPOComment -GPOName '*' -PolicyGroup 'Policy'
+Export-GPOComments -GPOName '*' -ReportFile ".\gpo.htm"
 ```
 
 ### -------------------------- EXAMPLE 2 --------------------------
 ```
-$GpoNames | Get-GPOComment -PolicyGroup 'Policy'
+$GpoNames | Export-GPOComments -ReportFile ".\gpo.htm"
 ```
 
 ### -------------------------- EXAMPLE 3 --------------------------
 ```
-Get-GPOComment -GPOName '*' -PolicyGroup 'Settings'
-```
-
-### -------------------------- EXAMPLE 4 --------------------------
-```
-Get-GPOComment -GPOName '*' -PolicyGroup 'Preferences'
+Export-GPOComments -ReportFile ".\gpo.htm" -StyleSheet ".\mystyles.css"
 ```
 
 ## PARAMETERS
@@ -58,9 +54,8 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -PolicyGroup
-What aspects of each GPO is to be queried
-List = Policy, Settings, Preferences
+### -ReportFile
+Path and name of new HTML report file
 
 ```yaml
 Type: String
@@ -74,12 +69,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -StyleSheet
+Path and name of CSS template file
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: 3
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ## INPUTS
 
 ## OUTPUTS
 
 ## NOTES
-version 1.1.0 - 11/14/2017 - David Stein
+1.1.0 - 11/14/2017 - David Stein
 
 ## RELATED LINKS
 
