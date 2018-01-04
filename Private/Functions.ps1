@@ -8,6 +8,9 @@ function Get-GpoCommentFile {
     
     .PARAMETER Gpo
     Group Policy Object reference
+
+    .PARAMETER ConfigType
+    Configuration Type: Machine or User
     
     .EXAMPLE
     $filepath = Get-GpoCommentFile -Gpo $GPO
@@ -21,10 +24,13 @@ function Get-GpoCommentFile {
     #>
     param (
         [parameter(Mandatory=$True, HelpMessage="Group Policy ID")]
-        [ValidateNotNullOrEmpty()]
-        $Gpo
+            [ValidateNotNullOrEmpty()]
+            $Gpo,
+        [parameter(Mandatory=$True, HelpMessage="Configuration Type: Machine or User")]
+            [ValidateNotNullOrEmpty()]
+            [string] $ConfigType
     )
-    $result = "\\$($gpo.DomainName)\SYSVOL\$($gpo.DomainName)\Policies\{$($gpo.ID)}\$config\comment.cmtx"
+    $result = "\\$($gpo.DomainName)\SYSVOL\$($gpo.DomainName)\Policies\{$($gpo.ID)}\$ConfigType\comment.cmtx"
     if (Test-Path $result) {
         Write-Output $result
     }
@@ -44,19 +50,22 @@ function Get-GppCommentPath {
     .PARAMETER Gpo
     Group Policy Object reference
     
+    .PARAMETER ConfigType
+    Configuration Type: Machine or User
+
     .EXAMPLE
-    $gppPath = Get-GppCommentPath -Gpo $gpo
+    $gppPath = Get-GppCommentPath -Gpo $gpo -ConfigType 'Machine'
     
     .NOTES
     General notes
     #>
     param (
         [parameter(Mandatory=$True, HelpMessage="Group Policy Object")]
-        [ValidateNotNullOrEmpty()]
-        $Gpo,
-        [parameter(Mandatory=$True, HelpMessage="Computer or User")]
-        [ValidateNotNullOrEmpty()]
-        [string] $ConfigType
+            [ValidateNotNullOrEmpty()]
+            $Gpo,
+        [parameter(Mandatory=$True, HelpMessage="Machine or User")]
+            [ValidateNotNullOrEmpty()]
+            [string] $ConfigType
     )
     $result = "\\$($gpo.DomainName)\SYSVOL\$($gpo.DomainName)\Policies\{$($gpo.Id)}\$ConfigType\Preferences"
     if (Test-Path $result) {
