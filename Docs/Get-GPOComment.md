@@ -1,6 +1,6 @@
 ---
 external help file: GPODoc-help.xml
-Module Name: GPOdoc
+Module Name: GPODoc
 online version: 
 schema: 2.0.0
 ---
@@ -13,7 +13,7 @@ Retrieve comments/descriptions embedded in GPOs
 ## SYNTAX
 
 ```
-Get-GPOComment [-GPOName] <String[]> [-PolicyGroup] <String>
+Get-GPOComment [-GPOName] <String[]> [-PolicyGroup] <String> [-ShowInfo]
 ```
 
 ## DESCRIPTION
@@ -74,12 +74,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -ShowInfo
+{{Fill ShowInfo Description}}
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: (All)
+Aliases: 
+
+Required: False
+Position: Named
+Default value: False
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ## INPUTS
 
 ## OUTPUTS
 
 ## NOTES
-version 1.1.0 - 11/14/2017 - David Stein
+version 1.1.2 - 1/3/2018 - David Stein
 
 ## RELATED LINKS
 

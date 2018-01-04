@@ -1,6 +1,6 @@
 ---
 external help file: GPODoc-help.xml
-Module Name: GPOdoc
+Module Name: GPODoc
 online version: 
 schema: 2.0.0
 ---
@@ -70,7 +70,7 @@ Accept wildcard characters: False
 ```
 
 ### -StyleSheet
-Path and name of CSS template file
+Path and name of custom CSS template file (default is /GPODoc/assets/default.css)
 
 ```yaml
 Type: String
@@ -89,7 +89,7 @@ Accept wildcard characters: False
 ## OUTPUTS
 
 ## NOTES
-1.1.0 - 11/14/2017 - David Stein
+1.1.2 - 1/3/2018 - David Stein
 
 ## RELATED LINKS
 
