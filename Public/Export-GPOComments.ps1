@@ -1,83 +1,85 @@
 #requires -Modules GroupPolicy
 
 function Export-GPOComments {
-    <#
-    .SYNOPSIS
-        Compile HTML Report of GPO comments
-    .DESCRIPTION
-        Compile an HTML report of comments embedded within GPOs, GPO Settings
-        and GP Preferences settings
-    .PARAMETER GPOName
-        Name(s) of Group Policy Objects or '*' for all GPOs
-    .PARAMETER ReportFile
-        Path and name of new HTML report file
-    .PARAMETER StyleSheet
-        Path and name of custom CSS template file (default is /GPODoc/assets/default.css)
-    .EXAMPLE
-        Export-GPOComments -GPOName '*' -ReportFile ".\gpo.htm"
-    .EXAMPLE
-        $GpoNames | Export-GPOComments -ReportFile ".\gpo.htm"
-    .EXAMPLE
-        Export-GPOComments -ReportFile ".\gpo.htm" -StyleSheet ".\mystyles.css"
-    .NOTES
-        1.1.2 - 1/3/2018 - David Stein
-    #>
-    param (
-        [parameter(Mandatory = $True, ValueFromPipeline = $True, HelpMessage = 'Name of Policy or Policies')]
-            [ValidateNotNullOrEmpty()]
-            [string[]] $GPOName,
-        [parameter(Mandatory = $True, HelpMessage = 'Path to report file')]
-            [ValidateNotNullOrEmpty()]
-            [string] $ReportFile,
-        [parameter(Mandatory = $False, HelpMessage = 'Path to custom CSS file')]
-            [string] $StyleSheet = ""
-    )
-    $ModuleData = Get-Module GPODoc
-    $ModuleVer  = $ModuleData.Version -join '.'
-    $ModulePath = $ModuleData.Path -replace 'GPODoc.psm1',''
-    Write-Host "GPODoc $ModuleVer - https://github.com/Skatterbrainz/GPODoc" -ForegroundColor Cyan
+	<#
+	.SYNOPSIS
+		Compile HTML Report of GPO comments
+	.DESCRIPTION
+		Compile an HTML report of comments embedded within GPOs, GPO Settings
+		and GP Preferences settings
+	.PARAMETER GPOName
+		Name(s) of Group Policy Objects or '*' for all GPOs
+	.PARAMETER ReportFile
+		Path and name of new HTML report file
+	.PARAMETER StyleSheet
+		Path and name of custom CSS template file (default is /GPODoc/assets/default.css)
+	.EXAMPLE
+		Export-GPOComments -GPOName '*' -ReportFile ".\gpo.htm"
+	.EXAMPLE
+		$GpoNames | Export-GPOComments -ReportFile ".\gpo.htm"
+	.EXAMPLE
+		Export-GPOComments -ReportFile ".\gpo.htm" -StyleSheet ".\mystyles.css"
+	.NOTES
+		1.2.0 - 7/6/2022
+	.LINK
+		https://github.com/Skatterbrainz/GPODoc/blob/master/Docs/Export-GPOComments.md
+	#>
+	param (
+		[parameter(Mandatory = $True, ValueFromPipeline = $True, HelpMessage = 'Name of Policy or Policies')]
+			[ValidateNotNullOrEmpty()]
+			[string[]] $GPOName,
+		[parameter(Mandatory = $True, HelpMessage = 'Path to report file')]
+			[ValidateNotNullOrEmpty()]
+			[string] $ReportFile,
+		[parameter(Mandatory = $False, HelpMessage = 'Path to custom CSS file')]
+			[string] $StyleSheet = ""
+	)
+	$ModuleData = Get-Module GPODoc
+	$ModuleVer  = $ModuleData.Version -join '.'
+	$ModulePath = $ModuleData.Path -replace 'GPODoc.psm1',''
+	Write-Host "GPODoc $ModuleVer - https://github.com/Skatterbrainz/GPODoc" -ForegroundColor Cyan
 
-    if ($GPOName -eq '*') {
-        Write-Verbose "loading all policy objects: preferences"
-        $gpos = Get-GPO -All | Sort-Object -Property DisplayName
-    }
-    else {
-        Write-Verbose "loading specific policy objects"
-        $gpos = $GPOName | Foreach-Object {Get-GPO -Name $_}
-    }
-    if ($StyleSheet -eq "") {
-        $StyleSheet = Join-Path $ModulePath -ChildPath "assets\default.css"
-    }
-    if (!(Test-Path $StyleSheet)) {
-        Write-Warning "Error: Stylesheet file not found: $StyleSheet"
-        break
-    }
-    $ReportTitle = "Group Policy Comments - $GPOName"
-    $fragments = @()
-    $fragments += "<h1>Group Policy Report</h1>"
+	if ($GPOName -eq '*') {
+		Write-Verbose "loading all policy objects: preferences"
+		$gpos = Get-GPO -All | Sort-Object -Property DisplayName
+	}
+	else {
+		Write-Verbose "loading specific policy objects"
+		$gpos = $GPOName | Foreach-Object {Get-GPO -Name $_}
+	}
+	if ($StyleSheet -eq "") {
+		$StyleSheet = Join-Path $ModulePath -ChildPath "assets\default.css"
+	}
+	if (!(Test-Path $StyleSheet)) {
+		Write-Warning "Error: Stylesheet file not found: $StyleSheet"
+		break
+	}
+	$ReportTitle = "Group Policy Comments - $GPOName"
+	$fragments = @()
+	$fragments += "<h1>Group Policy Report</h1>"
 
-    foreach ($gpo in $gpos) {
-        $gpoName = $gpo.DisplayName
-        Write-Output "GPO: $gpoName"
-        $desc = Get-GpoComment -GPOName $gpoName -PolicyGroup Policy
-        $sett = Get-GpoComment -GPOName $gpoName -PolicyGroup Settings
-        $pref = Get-GpoComment -GPOName $gpoName -PolicyGroup Preferences
-        
-        Write-Verbose $desc
+	foreach ($gpo in $gpos) {
+		$gpoName = $gpo.DisplayName
+		Write-Output "GPO: $gpoName"
+		$desc = Get-GpoComment -GPOName $gpoName -PolicyGroup Policy
+		$sett = Get-GpoComment -GPOName $gpoName -PolicyGroup Settings
+		$pref = Get-GpoComment -GPOName $gpoName -PolicyGroup Preferences
+		
+		Write-Verbose $desc
 
-        $fragments += "<h2>$gpoName</h2>"
-        $fragments += $desc | ConvertTo-Html -As List
+		$fragments += "<h2>$gpoName</h2>"
+		$fragments += $desc | ConvertTo-Html -As List
 
-        $fragments += "<h3>Policy Settings</h3>"
-        $fragments += $sett | ConvertTo-Html -Fragment
+		$fragments += "<h3>Policy Settings</h3>"
+		$fragments += $sett | ConvertTo-Html -Fragment
 
-        $fragments += "<h3>Preferences</h3>"
-        $fragments += $pref | ConvertTo-Html -Fragment
-    }
-    $weblink = 'http://github.com/skatterbrainz/GPODoc'
-    $webtext = "<a href='$weblink'>$weblink</a>"
-    $fragments += "<p class='footer'>Generated by GPODoc $ModuleVer - $webtext - $(Get-Date)</p>"
-    ConvertTo-Html -Body $fragments -CssUri $StyleSheet -Title $ReportTitle | Out-File $ReportFile -Force
+		$fragments += "<h3>Preferences</h3>"
+		$fragments += $pref | ConvertTo-Html -Fragment
+	}
+	$weblink = 'http://github.com/skatterbrainz/GPODoc'
+	$webtext = "<a href='$weblink'>$weblink</a>"
+	$fragments += "<p class='footer'>Generated by GPODoc $ModuleVer - $webtext - $(Get-Date)</p>"
+	ConvertTo-Html -Body $fragments -CssUri $StyleSheet -Title $ReportTitle | Out-File $ReportFile -Force
 }
 
 Export-ModuleMember -Function Export-GPOComments
