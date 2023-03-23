@@ -1,5 +1,3 @@
-#requires -Modules GroupPolicy
-
 function Export-GPOComments {
 	<#
 	.SYNOPSIS
@@ -19,8 +17,6 @@ function Export-GPOComments {
 		$GpoNames | Export-GPOComments -ReportFile ".\gpo.htm"
 	.EXAMPLE
 		Export-GPOComments -ReportFile ".\gpo.htm" -StyleSheet ".\mystyles.css"
-	.NOTES
-		1.2.0 - 7/6/2022
 	.LINK
 		https://github.com/Skatterbrainz/GPODoc/blob/master/Docs/Export-GPOComments.md
 	#>
@@ -34,10 +30,10 @@ function Export-GPOComments {
 		[parameter(Mandatory = $False, HelpMessage = 'Path to custom CSS file')]
 			[string] $StyleSheet = ""
 	)
-	$ModuleData = Get-Module GPODoc
-	$ModuleVer  = $ModuleData.Version -join '.'
-	$ModulePath = $ModuleData.Path -replace 'GPODoc.psm1',''
-	Write-Host "GPODoc $ModuleVer - https://github.com/Skatterbrainz/GPODoc" -ForegroundColor Cyan
+	$mdata = Get-ModuleData
+	$ModuleVer  = $mdata.Version
+	$ModulePath = $mdata.Path
+	Write-Host "GPODoc $ModuleVer - $($mdata.Source)" -ForegroundColor Cyan
 
 	if ($GPOName -eq '*') {
 		Write-Verbose "loading all policy objects: preferences"

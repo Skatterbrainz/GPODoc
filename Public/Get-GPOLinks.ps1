@@ -14,7 +14,6 @@ function Get-GPOLinks {
 		Get-GPOLinks -SearchBase "OU=Servers,OU=CORP,DC=contoso,DC=local"
 
 		Returns OUs starting at and below the path specified by SearchBase, and their GPO links
-
 	.LINK
 		https://github.com/Skatterbrainz/GPODoc/blob/master/Docs/Get-GPOlinks.md
 	#>

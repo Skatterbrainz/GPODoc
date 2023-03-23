@@ -110,3 +110,16 @@ function Get-GPOByID {
 	)
 	$GpoArray.Where({$_.Id -eq $ID})
 }
+
+function Get-ModuleData {
+	param (
+		[parameter()][string]$Name = "GPODoc"
+	)
+	$mdata = Get-Module $Name -ListAvailable
+	[pscustomobject]@{
+		Name = $mdata.Name
+		Version = $($mdata.Version).ToString()
+		Path = $(Split-Path $mdata.Path -Parent)
+		Source = "https://github.com/Skatterbrainz/GPODoc"
+	}
+}

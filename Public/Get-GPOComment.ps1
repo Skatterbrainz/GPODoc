@@ -1,83 +1,55 @@
-#requires -Modules GroupPolicy
-
 function Get-GPOComment {
 	<#
 	.SYNOPSIS
-		Retrieve comments/descriptions embedded in GPOs
+		Return comments and description embedded in GPOs
 	.DESCRIPTION
-		Retrieve comments and descriptions embedded in GPOs, GPO Settings and GP Preferences Settings
-	.PARAMETER GPOName
-		Name(s) of Group Policy Objects or '*' for all GPOs
+		Return comments and description embedded in GPOs, individual
+		GPO settings, and Group Policy Preferences settings.
+	.PARAMETER Name
+		Optional. Name of GPO to query. If blank, will return all GPO's in the domain.
 	.PARAMETER PolicyGroup
-		What aspects of each GPO is to be queried
-		List = Policy, Settings, Preferences
+		Optional. Which aspect of GPO information to query comments from
+
+		* Policy (default) - returns GPO comments
+		* Settings - returns comments entered for individual settings within the GPOs
+		* Preferences - returns comments entered for individual preferences within the GPOs
+
 	.EXAMPLE
-		Get-GPOComment -GPOName '*' -PolicyGroup 'Policy'
+		Get-GPOComment -Name "Workstation Power Settings"
+
+		Return GPO comments for named GPO
 	.EXAMPLE
-		$GpoNames | Get-GPOComment -PolicyGroup 'Policy'
+		Get-GPOComment -Name "Workstation Power Settings" -PolicyGroup Settings
+
+		Return GPO comments on individual settings within GPO
 	.EXAMPLE
-		Get-GPOComment -GPOName '*' -PolicyGroup 'Settings'
-	.EXAMPLE
-		Get-GPOComment -GPOName '*' -PolicyGroup 'Preferences'
-	.NOTES
-		version 1.2.0 - 7/6/2022
+		Get-GPOComment
+
+		Return GPO comments for all GPO's in the current AD domain
 	.LINK
 		https://github.com/Skatterbrainz/GPODoc/blob/master/Docs/Get-GPOComment.md
 	#>
 	[CmdletBinding()]
 	param (
-		[parameter(Mandatory = $True, ValueFromPipeline = $True, HelpMessage = 'Name of Policy or Policies')]
-			[ValidateNotNullOrEmpty()]
-			[string[]] $GPOName,
-		[parameter(Mandatory = $True, HelpMessage = 'Policy group to query')]
-			[ValidateSet('Policy', 'Settings', 'Preferences')]
-			[string] $PolicyGroup,
-		[parameter(Mandatory = $False)]
-			[switch] $ShowInfo
+		[parameter()][string]$Name = "",
+		[parameter()][ValidateSet('Policy','Settings','Preferences')][string] $PolicyGroup = "Policy"
 	)
-	if ($ShowInfo) {
-		$ModuleData = Get-Module GPODoc
-		$ModuleVer  = $ModuleData.Version -join '.'
-		Write-Host "GPODoc $ModuleVer - https://github.com/Skatterbrainz/GPODoc" -ForegroundColor Cyan
+	if ([string]::IsNullOrWhiteSpace($Name)) {
+		$GpoSet = @(Get-GPO -All | Sort-Object DisplayName)
+	} else {
+		$GpoSet = @(Get-GPO -Name $Name | Select-Object Id, DisplayName, DomainName, Description)
 	}
-	switch ($PolicyGroup) {
-		'Policy' {
-			if ($GPOName -eq '*') {
-				Write-Verbose "loading all policy objects"
-				$gpos = Get-GPO -All | Sort-Object -Property DisplayName
-			}
-			else {
-				Write-Verbose "loading specific policy objects"
-				try {
-					$gpos = $GPOName | Foreach-Object {Get-GPO -Name $_ -ErrorAction Stop | Select-Object Id, DisplayName, DomainName, Description}
-				}
-				catch {
-					Write-Warning "Unable to load GPO"
-					break
-				}
-			}
-			foreach ($gpo in $gpos) {
-				Write-Verbose "policy: $($gpo.DisplayName)"
-				$data = [ordered]@{
+	foreach ($gpo in $GpoSet) {
+		Write-Verbose "policy: $($gpo.DisplayName)"
+		switch ($PolicyGroup) {
+			'Policy' {
+				[pscustomobject]@{
 					PolicyID    = $gpo.Id
 					Name        = $gpo.DisplayName
 					Description = $gpo.Description
 				}
-				New-Object -TypeName PSObject -Property $data
 			}
-			break
-		}
-		'Settings' {
-			if ($GPOName -eq '*') {
-				Write-Verbose "loading all policy objects"
-				$gpos = Get-GPO -All | Sort-Object -Property DisplayName
-			}
-			else {
-				Write-Verbose "loading specific policy objects"
-				$gpos = $GPOName | 
-					Foreach-Object {Get-GPO -Name $_ -ErrorAction Stop | Select-Object Id, DisplayName, DomainName, Description}
-			}
-			foreach ($gpo in $gpos) {
+			'Settings' {
 				$configs = @('Machine', 'User')
 				Write-Verbose "policy: $($gpo.DisplayName)"
 				foreach ($config in $configs) {
@@ -108,20 +80,9 @@ function Get-GPOComment {
 						}
 						New-Object -TypeName PSObject -Property $data
 					}
-				}
+				} # foreach config
 			}
-			break
-		}
-		'Preferences' {
-			if ($GPOName -eq '*') {
-				Write-Verbose "loading all policy objects: preferences"
-				$gpos = Get-GPO -All | Sort-Object -Property DisplayName
-			}
-			else {
-				Write-Verbose "loading specific policy objects"
-				$gpos = $GPOName | Foreach-Object {Get-GPO -Name $_ -ErrorAction Stop | Select-Object Id, DisplayName, DomainName, Description}
-			}
-			foreach ($gpo in $gpos) {
+			'Preferences' {
 				$configs = @('Machine', 'User')
 				Write-Verbose "policy: $($gpo.DisplayName)"
 				foreach ($config in $configs) {
@@ -135,7 +96,7 @@ function Get-GPOComment {
 								[xml]$gppXML = Get-Content $gppFile
 								$Element = $section.substring(0, $section.Length - 1)
 								foreach ($Element in $gppXML."$section"."$Element") {
-									$data = [ordered]@{
+									[pscustomobject]@{
 										PolicyID      = $gpo.ID
 										Name          = $gpo.DisplayName
 										Configuration = $config
@@ -143,20 +104,16 @@ function Get-GPOComment {
 										Element       = $Element.name
 										Comment       = $Element.desc
 									}
-									New-Object -TypeName PSObject -Property $data
 								}
-							}
-							else {
+							} else {
 								Write-Verbose "no preference xml data found for $section"
 							}
 						}
-					}
-					else {
+					} else {
 						Write-Verbose "there are no preferences for this policy object"
 					}
-				}
+				} # foreach config
 			}
-			break
-		}
-	}
+		} # switch
+	} # foreach gpo
 }
